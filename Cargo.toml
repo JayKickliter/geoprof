@@ -16,6 +16,7 @@ clap       = { version = "4.4.2", features = ["derive"] }
 criterion  = { version = "0.5", features = ["html_reports"] }
 dashmap    = "5.5.3"
 geo        = "0.26.0"
+image      = "0"
 log        = "0.4.20"
 memmap2    = "0.7.1"
 num-traits = "0.2.16"

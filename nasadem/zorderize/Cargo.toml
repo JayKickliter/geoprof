@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 clap    = { workspace = true }
 glob    = "0"
-image   = "0"
-nasadem = { path = ".." }
+image   = { workspace = true }
+nasadem = { path = "..", features = ["image"] }

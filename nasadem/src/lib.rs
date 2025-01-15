@@ -17,6 +17,8 @@ use geo::{
     geometry::{Coord, Polygon},
     polygon,
 };
+#[cfg(feature = "image")]
+use image::{ImageBuffer, Luma};
 use memmap2::Mmap;
 use std::{
     fs::File,
@@ -306,6 +308,29 @@ impl Tile {
             (x: w, y: n),
             (x: w, y: s),
         ]
+    }
+
+    /// Returns an [image] of this tile.
+    ///
+    /// [image]: image::ImageBuffer
+    #[cfg(feature = "image")]
+    // https://docs.rs/image/latest/image/struct.ImageBuffer.html
+    pub fn to_image(&self) -> ImageBuffer<Luma<u16>, Vec<u16>> {
+        let (x_dim, y_dim) = self.dimensions();
+        let mut img = ImageBuffer::new(x_dim as u32, y_dim as u32);
+        let min_elev = self.min_elevation() as f32;
+        let max_elev = self.max_elevation() as f32;
+        let scale = |m: i16| {
+            let m = m as f32;
+            (m - min_elev) / (max_elev - min_elev) * u16::MAX as f32
+        };
+        for sample in self.iter() {
+            let (x, y) = sample.index();
+            let elev = sample.elevation();
+            let scaled_elev = scale(elev);
+            img.put_pixel(x as u32, (y_dim - 1 - y) as u32, Luma([scaled_elev as u16]))
+        }
+        img
     }
 }
 
