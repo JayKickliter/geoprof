@@ -89,11 +89,11 @@ impl SampleStore {
     fn min(&self) -> i16 {
         match self {
             Self::Tombstone => 0,
-            Self::InMem(samples) => samples.iter().max().copied().unwrap(),
+            Self::InMem(samples) => samples.iter().min().copied().unwrap(),
             Self::MemMap(raw) => (*raw)
                 .chunks_exact(2)
                 .map(|mut bytes| (&mut bytes).read_i16::<BE>().unwrap())
-                .max()
+                .min()
                 .unwrap(),
         }
     }
@@ -224,10 +224,15 @@ impl Tile {
         }
     }
 
+    /// Returns this tile's (x, y) dimensions.
+    pub fn dimensions(&self) -> (usize, usize) {
+        self.dimensions
+    }
+
     /// Returns the number of samples in this tile.
     #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
-        let (x, y) = self.dimensions;
+        let (x, y) = self.dimensions();
         x * y
     }
 
@@ -261,9 +266,9 @@ impl Tile {
         let (idx_x, idx_y) = self.coord_to_xy(coord);
         #[allow(clippy::cast_possible_wrap)]
         if 0 <= idx_x
-            && idx_x < self.dimensions.0 as isize
+            && idx_x < self.dimensions().0 as isize
             && 0 <= idx_y
-            && idx_y < self.dimensions.1 as isize
+            && idx_y < self.dimensions().1 as isize
         {
             #[allow(clippy::cast_sign_loss)]
             let idx_1d = self.xy_to_linear_index((idx_x as usize, idx_y as usize));
@@ -283,7 +288,7 @@ impl Tile {
 
     /// Returns and iterator over `self`'s grid squares.
     pub fn iter(&self) -> impl Iterator<Item = Sample<'_>> + '_ {
-        (0..(self.dimensions.0 * self.dimensions.1)).map(|index| Sample { tile: self, index })
+        (0..(self.dimensions().0 * self.dimensions().1)).map(|index| Sample { tile: self, index })
     }
 
     /// Returns this tile's outline as a polygon.
@@ -326,13 +331,13 @@ impl Tile {
     }
 
     fn linear_index_to_xy(&self, idx: usize) -> (usize, usize) {
-        let y = idx / self.dimensions.0;
-        let x = idx % self.dimensions.1;
-        (x, self.dimensions.1 - 1 - y)
+        let y = idx / self.dimensions().0;
+        let x = idx % self.dimensions().1;
+        (x, self.dimensions().1 - 1 - y)
     }
 
     fn xy_to_linear_index(&self, (x, y): (usize, usize)) -> usize {
-        self.dimensions.0 * (self.dimensions.1 - y - 1) + x
+        self.dimensions().0 * (self.dimensions().1 - y - 1) + x
     }
 
     fn xy_to_polygon(&self, (x, y): (usize, usize)) -> Polygon<C> {
@@ -376,8 +381,11 @@ impl<'a> Sample<'a> {
     }
 
     pub fn polygon(&self) -> Polygon {
-        self.tile
-            .xy_to_polygon(self.tile.linear_index_to_xy(self.index))
+        self.tile.xy_to_polygon(self.index())
+    }
+
+    pub fn index(&self) -> (usize, usize) {
+        self.tile.linear_index_to_xy(self.index)
     }
 }
 

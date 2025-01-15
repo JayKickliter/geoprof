@@ -3,6 +3,7 @@ members = [
   "geopath",
   "itm",
   "nasadem",
+  "nasadem/zorderize",
   "propah",
   "terrain",
 ]
